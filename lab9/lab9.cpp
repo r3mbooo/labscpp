@@ -159,7 +159,7 @@ void Character::load(std::ifstream& file) {
     file >> name >> health >> attack >> defense >> level >> experience;
     file >> invSize;
 
-    inventory = Inventory<std::string>(); // Очищаем инвентарь
+    inventory = Inventory<std::string>(); 
     for (int i = 0; i < invSize; ++i) {
         file >> item;
         inventory.addItem(item);
