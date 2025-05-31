@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -13,10 +13,16 @@ public:
     void addItem(const T& item) {
         items.push_back(item);
     }
+
     void removeItem(const T& item) {
         auto it = std::find(items.begin(), items.end(), item);
         if (it != items.end()) items.erase(it);
     }
+
+    const std::vector<T>& getItems() const {
+        return items;
+    }
+
     void showInventory() const {
         std::cout << "Inventory:\n";
         for (const auto& item : items)
@@ -26,6 +32,7 @@ public:
 
 class Monster;
 
+class Character;
 
 class Character {
 private:
@@ -57,7 +64,6 @@ public:
     void load(std::ifstream& file);
 };
 
-
 class Monster {
 protected:
     std::string name;
@@ -71,7 +77,7 @@ public:
     }
 
     virtual void attackEnemy(Character& enemy) {
-        int damage = attack - enemy.getDefense();
+        int damage = this->attack - enemy.getDefense();
         if (damage > 0) {
             enemy.takeDamage(damage);
             std::cout << name << " attacks for " << damage << " damage!\n";
@@ -88,12 +94,11 @@ public:
     bool isAlive() const { return health > 0; }
     int getDefense() const { return defense; }
     int getHealth() const { return health; }
-    void takeDamage(int damage) { health -= damage; }
+    void takeDamage(int damage) { health -= damage; if (health < 0) health = 0; }
 
     virtual ~Monster() = default;
 };
 
-// Реализация методов Character
 void Character::attackEnemy(Monster& enemy) {
     int damage = attack - enemy.getDefense();
     if (damage > 0) {
@@ -137,15 +142,30 @@ void Character::takeDamage(int damage) {
 }
 
 void Character::save(std::ofstream& file) const {
-    file << name << "\n" << health << " " << attack << " "
+    file << name << "\n"
+        << health << " " << attack << " "
         << defense << " " << level << " " << experience << "\n";
+
+    int invSize = inventory.getItems().size();
+    file << invSize << "\n";
+    for (const auto& item : inventory.getItems())
+        file << item << "\n";
 }
 
 void Character::load(std::ifstream& file) {
+    int invSize;
+    std::string item;
+
     file >> name >> health >> attack >> defense >> level >> experience;
+    file >> invSize;
+
+    inventory = Inventory<std::string>(); // Очищаем инвентарь
+    for (int i = 0; i < invSize; ++i) {
+        file >> item;
+        inventory.addItem(item);
+    }
 }
 
-// Конкретные монстры
 class Goblin : public Monster {
 public:
     Goblin() : Monster("Goblin", 30, 8, 2) {}
@@ -160,7 +180,6 @@ class Dragon : public Monster {
 public:
     Dragon() : Monster("Dragon", 100, 20, 10) {}
 };
-
 
 class GameManager {
     std::unique_ptr<Character> player;
@@ -227,7 +246,7 @@ public:
             monster->attackEnemy(*player);
             if (!player->isAlive()) {
                 std::cout << "You were defeated!\n";
-                return;
+                exit(0); // Завершение игры при смерти
             }
         }
     }
